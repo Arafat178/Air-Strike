@@ -3,35 +3,84 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Air Strike: Desert Storm</title>
+    <title>Air Strike: Desert Storm - Ultimate Edition</title>
     <style>
+        /* Core Reset & Canvas Setup */
         * { margin: 0; padding: 0; box-sizing: border-box; user-select: none; }
-        body { overflow: hidden; background-color: #000; font-family: 'Courier New', Courier, monospace; }
+        body { 
+            overflow: hidden; 
+            background-color: #000; 
+            font-family: 'Courier New', Courier, monospace; 
+            touch-action: none; /* Prevents mobile scrolling/zooming */
+        }
         canvas { display: block; width: 100vw; height: 100vh; }
-        #ui-layer { position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; padding: 20px; color: #0f0; text-shadow: 0 0 5px #0f0; }
+        
+        /* Heads Up Display (HUD) */
+        #ui-layer { position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; padding: 20px; color: #0f0; text-shadow: 0 0 5px #0f0; z-index: 2; }
         .hud-top { display: flex; justify-content: space-between; font-size: 20px; font-weight: bold; }
         .hud-stats { display: flex; flex-direction: column; gap: 5px; }
         .health-bar-container { width: 200px; height: 20px; border: 2px solid #0f0; background: rgba(0,255,0,0.2); }
         #health-bar { width: 100%; height: 100%; background: #0f0; transition: width 0.1s; }
         #combo-text { font-size: 24px; color: #ff0; text-shadow: 0 0 10px #f90; opacity: 0; transition: opacity 0.3s, transform 0.3s; }
-        #game-over { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); display: flex; flex-direction: column; justify-content: center; align-items: center; pointer-events: auto; opacity: 0; transition: opacity 0.5s; z-index: 10; display: none; }
-        #game-over h1 { font-size: 60px; color: #f00; text-shadow: 0 0 20px #f00; margin-bottom: 20px; }
-        #game-over p { font-size: 24px; color: #fff; margin-bottom: 30px; }
-        button { padding: 15px 40px; font-size: 24px; background: transparent; color: #0f0; border: 2px solid #0f0; cursor: pointer; text-transform: uppercase; font-family: inherit; font-weight: bold; transition: all 0.2s; box-shadow: 0 0 10px rgba(0,255,0,0.3) inset; }
+        #ult-warning { color: red; display: none; font-weight: bold; text-shadow: 0 0 10px red; }
+        
+        /* Screens (Game Over & Start) */
+        #game-over, #start-screen { position: absolute; top: 0; left: 0; width: 100%; height: 100%; display: flex; flex-direction: column; justify-content: center; align-items: center; pointer-events: auto; z-index: 10; }
+        #game-over { background: rgba(0,0,0,0.8); opacity: 0; transition: opacity 0.5s; display: none; }
+        #start-screen { background: #111; z-index: 20; }
+        h1 { font-size: 60px; color: #f00; text-shadow: 0 0 20px #f00; margin-bottom: 20px; }
+        p { font-size: 24px; color: #fff; margin-bottom: 30px; }
+        button { padding: 15px 40px; font-size: 24px; background: transparent; color: #0f0; border: 2px solid #0f0; cursor: pointer; text-transform: uppercase; font-weight: bold; transition: all 0.2s; box-shadow: 0 0 10px rgba(0,255,0,0.3) inset; }
         button:hover { background: #0f0; color: #000; box-shadow: 0 0 20px #0f0; }
-        #start-screen { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: #111; display: flex; flex-direction: column; justify-content: center; align-items: center; z-index: 20; pointer-events: auto; }
+        
+        /* Information text */
         .controls-info { color: #aaa; margin: 30px 0; text-align: center; line-height: 1.6; }
         .key { display: inline-block; padding: 2px 8px; border: 1px solid #aaa; border-radius: 4px; color: #fff; }
+
+        /* Ultimate Flash Effect */
+        #flash-overlay { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: white; opacity: 0; pointer-events: none; transition: opacity 0.1s; z-index: 5; }
+
+        /* Mobile Touch Controls */
+        #touch-controls { display: none; position: absolute; bottom: 20px; left: 0; width: 100%; padding: 0 40px; justify-content: space-between; z-index: 10; pointer-events: none; }
+        .d-pad { display: flex; flex-direction: column; align-items: center; gap: 10px; pointer-events: auto; }
+        .d-pad-middle { display: flex; gap: 40px; }
+        .action-buttons { display: flex; gap: 20px; align-items: flex-end; pointer-events: auto; }
+        
+        .touch-btn { width: 60px; height: 60px; background: rgba(0, 255, 0, 0.2); border: 2px solid #0f0; border-radius: 50%; display: flex; justify-content: center; align-items: center; color: #0f0; font-size: 24px; font-weight: bold; }
+        .touch-btn:active { background: rgba(0, 255, 0, 0.6); color: #000; }
+        .action-btn { width: 80px; height: 80px; border-radius: 15px; font-size: 18px; }
+        .ult-btn { border-color: #f0f; color: #f0f; background: rgba(255, 0, 255, 0.2); }
+        .ult-btn:active { background: rgba(255, 0, 255, 0.6); color: #fff; }
+
+        /* Portrait Warning Lock */
+        #portrait-warning { display: none; position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: #000; color: #0f0; flex-direction: column; justify-content: center; align-items: center; z-index: 999; text-align: center; }
+        
+        /* Media Queries for Mobile Responsiveness */
+        @media screen and (orientation: portrait) {
+            #portrait-warning { display: flex; }
+            #touch-controls { display: none !important; }
+        }
+        @media screen and (max-width: 900px) and (orientation: landscape) {
+            #touch-controls { display: flex; }
+            .hud-top { font-size: 14px; }
+            .touch-btn { width: 50px; height: 50px; font-size: 20px; }
+            .action-btn { width: 70px; height: 70px; font-size: 16px; }
+            .health-bar-container { width: 150px; }
+        }
     </style>
 </head>
 <body>
     <canvas id="gameCanvas"></canvas>
+    
     <div id="ui-layer">
         <div class="hud-top">
             <div class="hud-stats">
                 <div>SCORE: <span id="score">0</span></div>
                 <div>HIGH: <span id="high-score">0</span></div>
                 <div id="combo-text">COMBO x<span id="combo-multiplier">1</span></div>
+                <div style="color: #0ff;">ALTITUDE: <span id="altitude">0</span>%</div>
+                <div style="color: #f0f;">ULTIMATES: <span id="ult-count">0</span>/3</div>
+                <div id="ult-warning">CLIMB HIGHER TO DEPLOY!</div>
             </div>
             <div class="hud-stats" style="align-items: flex-end;">
                 <div>ARMOR</div>
@@ -43,12 +92,34 @@
         </div>
     </div>
     
+    <div id="flash-overlay"></div>
+    <div id="portrait-warning">
+        <h2>MISSION PAUSED</h2>
+        <p>Rotate device to landscape to continue.</p>
+    </div>
+
+    <div id="touch-controls">
+        <div class="d-pad">
+            <div class="touch-btn" id="btn-up">▲</div>
+            <div class="d-pad-middle">
+                <div class="touch-btn" id="btn-left">◀</div>
+                <div class="touch-btn" id="btn-right">▶</div>
+            </div>
+            <div class="touch-btn" id="btn-down">▼</div>
+        </div>
+        <div class="action-buttons">
+            <div class="touch-btn action-btn" id="btn-fire">FIRE</div>
+            <div class="touch-btn action-btn ult-btn" id="btn-ult">ULT</div>
+        </div>
+    </div>
+    
     <div id="start-screen">
         <h1 style="color: #0f0; font-size: 50px; text-shadow: 0 0 15px #0f0;">STRIKE FORCE</h1>
         <div class="controls-info">
             <p><span class="key">W</span> / <span class="key">S</span> - Altitude Control</p>
             <p><span class="key">A</span> / <span class="key">D</span> - Speed Control</p>
             <p><span class="key">SPACE</span> - Drop Bomb</p>
+            <p><span class="key">N</span> - Ultimate Bomb (Requires Height & Kills)</p>
         </div>
         <button id="btn-start">INITIATE MISSION</button>
     </div>
@@ -60,10 +131,9 @@
     </div>
 
 <script>
-/**
- * BEGINNER FRIENDLY UTILITIES & SETUP
- * We use ES6 Classes to organize our game entities.
- */
+// ==========================================
+// SYSTEM INITIALIZATION
+// ==========================================
 const canvas = document.getElementById('gameCanvas');
 const ctx = canvas.getContext('2d');
 let W = canvas.width = window.innerWidth;
@@ -74,14 +144,17 @@ window.addEventListener('resize', () => {
     H = canvas.height = window.innerHeight;
 });
 
-// Input handling
-const keys = { w: false, a: false, s: false, d: false, space: false };
+// Input State Tracking
+const keys = { w: false, a: false, s: false, d: false, space: false, n: false };
+
+// Keyboard Listeners
 window.addEventListener('keydown', e => {
     if(e.code === 'KeyW' || e.key === 'ArrowUp') keys.w = true;
     if(e.code === 'KeyS' || e.key === 'ArrowDown') keys.s = true;
     if(e.code === 'KeyA' || e.key === 'ArrowLeft') keys.a = true;
     if(e.code === 'KeyD' || e.key === 'ArrowRight') keys.d = true;
     if(e.code === 'Space') keys.space = true;
+    if(e.code === 'KeyN') keys.n = true;
 });
 window.addEventListener('keyup', e => {
     if(e.code === 'KeyW' || e.key === 'ArrowUp') keys.w = false;
@@ -89,27 +162,38 @@ window.addEventListener('keyup', e => {
     if(e.code === 'KeyA' || e.key === 'ArrowLeft') keys.a = false;
     if(e.code === 'KeyD' || e.key === 'ArrowRight') keys.d = false;
     if(e.code === 'Space') keys.space = false;
+    if(e.code === 'KeyN') keys.n = false;
 });
 
-// Math Utils
+// Mobile Touch Listeners (Bridging digital and physical input)
+const bindTouch = (id, key) => {
+    const el = document.getElementById(id);
+    if(!el) return;
+    el.addEventListener('touchstart', (e) => { e.preventDefault(); keys[key] = true; }, {passive: false});
+    el.addEventListener('touchend', (e) => { e.preventDefault(); keys[key] = false; }, {passive: false});
+};
+
+bindTouch('btn-up', 'w');
+bindTouch('btn-down', 's');
+bindTouch('btn-left', 'a');
+bindTouch('btn-right', 'd');
+bindTouch('btn-fire', 'space');
+bindTouch('btn-ult', 'n');
+
+// Core Mathematical Utility Functions
 const MathUtils = {
     rand: (min, max) => Math.random() * (max - min) + min,
     distance: (x1, y1, x2, y2) => Math.hypot(x2 - x1, y2 - y1),
     clamp: (val, min, max) => Math.max(min, Math.min(max, val))
 };
 
-/**
- * AUDIO SYSTEM (Web Audio API)
- * Procedurally generates sound effects without external files.
- */
+// ==========================================
+// AUDIO SYNTHESIS ENGINE
+// ==========================================
 class AudioSystem {
     constructor() {
         this.ctx = new (window.AudioContext || window.webkitAudioContext)();
         this.enabled = false;
-        
-        // Engine sound nodes
-        this.engineOsc = null;
-        this.engineGain = null;
     }
     
     init() {
@@ -122,15 +206,13 @@ class AudioSystem {
         if (!this.enabled) return;
         this.engineOsc = this.ctx.createOscillator();
         this.engineOsc.type = 'sawtooth';
-        this.engineOsc.frequency.value = 60;
         
-        // Filter to make it sound muffled/bassy
         const filter = this.ctx.createBiquadFilter();
         filter.type = 'lowpass';
         filter.frequency.value = 200;
         
         this.engineGain = this.ctx.createGain();
-        this.engineGain.gain.value = 0; // Starts silent
+        this.engineGain.gain.value = 0; 
         
         this.engineOsc.connect(filter);
         filter.connect(this.engineGain);
@@ -140,7 +222,6 @@ class AudioSystem {
     
     updateEngine(speedRatio) {
         if (!this.enabled || !this.engineGain) return;
-        // Adjust pitch and volume based on jet speed
         this.engineOsc.frequency.setTargetAtTime(60 + speedRatio * 80, this.ctx.currentTime, 0.1);
         this.engineGain.gain.setTargetAtTime(0.1 + speedRatio * 0.15, this.ctx.currentTime, 0.1);
     }
@@ -155,10 +236,8 @@ class AudioSystem {
         const gain = this.ctx.createGain();
         osc.type = type;
         osc.frequency.setValueAtTime(freq, this.ctx.currentTime);
-        
         gain.gain.setValueAtTime(vol, this.ctx.currentTime);
         gain.gain.exponentialRampToValueAtTime(0.01, this.ctx.currentTime + duration);
-        
         osc.connect(gain);
         gain.connect(this.ctx.destination);
         osc.start();
@@ -169,30 +248,40 @@ class AudioSystem {
         const bufferSize = this.ctx.sampleRate * 2; 
         const buffer = this.ctx.createBuffer(1, bufferSize, this.ctx.sampleRate);
         const output = buffer.getChannelData(0);
-        for (let i = 0; i < bufferSize; i++) {
-            output[i] = Math.random() * 2 - 1;
-        }
+        for (let i = 0; i < bufferSize; i++) output[i] = Math.random() * 2 - 1;
         return buffer;
     }
     
     playExplosion(intensity = 1) {
         if (!this.enabled) return;
+        
+        // Deep sub-bass thump
+        const osc = this.ctx.createOscillator();
+        const oscGain = this.ctx.createGain();
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(150 * intensity, this.ctx.currentTime);
+        osc.frequency.exponentialRampToValueAtTime(20, this.ctx.currentTime + 0.6);
+        oscGain.gain.setValueAtTime(1.5 * intensity, this.ctx.currentTime);
+        oscGain.gain.exponentialRampToValueAtTime(0.01, this.ctx.currentTime + 0.8);
+        osc.connect(oscGain);
+        oscGain.connect(this.ctx.destination);
+        osc.start();
+        osc.stop(this.ctx.currentTime + 0.8);
+
+        // Muffled impact noise
         const noiseBuffer = this.createNoiseBuffer();
         const noiseSource = this.ctx.createBufferSource();
         noiseSource.buffer = noiseBuffer;
-        
         const filter = this.ctx.createBiquadFilter();
         filter.type = 'lowpass';
-        filter.frequency.setValueAtTime(1000 * intensity, this.ctx.currentTime);
-        filter.frequency.exponentialRampToValueAtTime(100, this.ctx.currentTime + 1);
-        
-        const gain = this.ctx.createGain();
-        gain.gain.setValueAtTime(0.8 * intensity, this.ctx.currentTime);
-        gain.gain.exponentialRampToValueAtTime(0.01, this.ctx.currentTime + 1);
-        
+        filter.frequency.setValueAtTime(200, this.ctx.currentTime); 
+        filter.frequency.exponentialRampToValueAtTime(40, this.ctx.currentTime + 0.4);
+        const noiseGain = this.ctx.createGain();
+        noiseGain.gain.setValueAtTime(0.5 * intensity, this.ctx.currentTime);
+        noiseGain.gain.exponentialRampToValueAtTime(0.01, this.ctx.currentTime + 0.4);
         noiseSource.connect(filter);
-        filter.connect(gain);
-        gain.connect(this.ctx.destination);
+        filter.connect(noiseGain);
+        noiseGain.connect(this.ctx.destination);
         noiseSource.start();
     }
     
@@ -203,20 +292,15 @@ class AudioSystem {
         osc.type = 'square';
         osc.frequency.setValueAtTime(300, this.ctx.currentTime);
         osc.frequency.exponentialRampToValueAtTime(40, this.ctx.currentTime + 0.3);
-        
         gain.gain.setValueAtTime(0.3, this.ctx.currentTime);
         gain.gain.exponentialRampToValueAtTime(0.01, this.ctx.currentTime + 0.3);
-        
         osc.connect(gain);
         gain.connect(this.ctx.destination);
         osc.start();
         osc.stop(this.ctx.currentTime + 0.3);
     }
 
-    playMissileLaunch() {
-        if (!this.enabled) return;
-        this.playTone(150, 'sawtooth', 0.8, 0.4);
-    }
+    playMissileLaunch() { this.playTone(150, 'sawtooth', 0.8, 0.4); }
     
     playAlarm() {
         if (!this.enabled) return;
@@ -235,25 +319,17 @@ class AudioSystem {
         osc.stop(now + 0.3);
     }
 }
-
 const audio = new AudioSystem();
 
-/**
- * PARTICLES & DEBRIS SYSTEM
- * Handles explosions, smoke, dust, and chunks of vehicles.
- */
+// ==========================================
+// PHYSICAL ENTITIES
+// ==========================================
 class Particle {
     constructor(x, y, vx, vy, life, color, size, type = 'normal') {
-        this.x = x;
-        this.y = y;
-        this.vx = vx;
-        this.vy = vy;
-        this.life = life;
-        this.maxLife = life;
-        this.color = color;
-        this.size = size;
-        this.type = type; // 'normal', 'smoke', 'fire'
-        this.alpha = 1;
+        this.x = x; this.y = y; this.vx = vx; this.vy = vy;
+        this.life = life; this.maxLife = life;
+        this.color = color; this.size = size;
+        this.type = type; this.alpha = 1;
     }
     update() {
         this.x += this.vx;
@@ -261,15 +337,15 @@ class Particle {
         this.life--;
         this.alpha = Math.max(0, this.life / this.maxLife);
         
+        // Fluid dynamics simulation for smoke and fire
         if (this.type === 'smoke') {
             this.size += 0.2;
             this.vx *= 0.95;
-            this.vy -= 0.05; // smoke rises
+            this.vy -= 0.05; 
         } else if (this.type === 'fire') {
             this.size *= 0.95;
-            this.vy -= 0.1; // fire goes up
+            this.vy -= 0.1; 
         }
-        
         return this.life > 0;
     }
     draw(ctx, camX) {
@@ -289,30 +365,26 @@ class Particle {
 
 class Debris {
     constructor(x, y, vx, vy, width, height, color) {
-        this.x = x;
-        this.y = y;
-        this.vx = vx;
-        this.vy = vy;
-        this.width = width;
-        this.height = height;
+        this.x = x; this.y = y; this.vx = vx; this.vy = vy;
+        this.width = width; this.height = height;
         this.color = color;
         this.angle = Math.random() * Math.PI * 2;
         this.spin = MathUtils.rand(-0.2, 0.2);
         this.life = 100;
     }
     update(terrain) {
-        this.vy += 0.5; // gravity
+        this.vy += 0.5; // Gravity
         this.x += this.vx;
         this.y += this.vy;
         this.angle += this.spin;
         this.life--;
         
-        // Bounce off terrain
+        // Ground collision logic
         let groundY = terrain.getHeight(this.x);
         if (this.y > groundY) {
             this.y = groundY;
-            this.vy *= -0.5;
-            this.vx *= 0.8;
+            this.vy *= -0.5; // Bounce
+            this.vx *= 0.8;  // Friction
             this.spin *= 0.8;
         }
         return this.life > 0;
@@ -328,17 +400,11 @@ class Debris {
     }
 }
 
-/**
- * TERRAIN SYSTEM
- * Generates continuous sine-wave based mountains and roads.
- */
 class Terrain {
-    constructor() {
-        this.seed = Math.random() * 1000;
-    }
+    constructor() { this.seed = Math.random() * 1000; }
     
+    // Procedural generation using overlapping sine waves
     getHeight(x) {
-        // Multi-layered sine waves for natural-looking hills
         const xOffset = x + this.seed;
         const base = H * 0.75;
         const wave1 = Math.sin(xOffset * 0.001) * 150;
@@ -348,14 +414,13 @@ class Terrain {
     }
     
     getAngle(x) {
-        // Derivative (slope) to angle
         const h1 = this.getHeight(x - 5);
         const h2 = this.getHeight(x + 5);
         return Math.atan2(h2 - h1, 10);
     }
     
     draw(ctx, camX, timeOfDay) {
-        // Parallax Mountains (Background)
+        // Render Mountains
         ctx.fillStyle = this.getMountainColor(timeOfDay);
         ctx.beginPath();
         ctx.moveTo(0, H);
@@ -367,7 +432,7 @@ class Terrain {
         ctx.lineTo(W, H);
         ctx.fill();
 
-        // Foreground Terrain
+        // Render Ground
         ctx.fillStyle = this.getTerrainColor(timeOfDay);
         ctx.beginPath();
         ctx.moveTo(0, H);
@@ -378,7 +443,7 @@ class Terrain {
         ctx.lineTo(W, H);
         ctx.fill();
 
-        // Draw Road Line
+        // Ground Stroke
         ctx.lineWidth = 6;
         ctx.strokeStyle = '#444';
         ctx.beginPath();
@@ -390,11 +455,10 @@ class Terrain {
     }
     
     getTerrainColor(time) {
-        // Blend colors based on time (0-1)
-        if (time < 0.25) return '#a67c00'; // Morning
-        if (time < 0.5) return '#cda434'; // Day
-        if (time < 0.75) return '#8c5912'; // Evening
-        return '#2a1f10'; // Night
+        if (time < 0.25) return '#a67c00'; 
+        if (time < 0.5) return '#cda434'; 
+        if (time < 0.75) return '#8c5912'; 
+        return '#2a1f10'; 
     }
     
     getMountainColor(time) {
@@ -405,15 +469,12 @@ class Terrain {
     }
 }
 
-/**
- * PLAYER JET
- */
 class Jet {
     constructor() {
-        this.x = W * 0.2; // Fixed screen X position relative to camera logic
+        this.x = W * 0.2; 
         this.y = H * 0.2;
         this.vy = 0;
-        this.vx = 8; // Forward speed (camera speed)
+        this.vx = 8; 
         this.speed = 10;
         this.maxSpeed = 18;
         this.minSpeed = 5;
@@ -425,45 +486,60 @@ class Jet {
     }
     
     update(game) {
-        // Controls
+        // Flight Mechanics
         if (keys.w) this.vy -= 0.5;
         if (keys.s) this.vy += 0.5;
         if (keys.a) this.speed -= 0.2;
         if (keys.d) this.speed += 0.2;
         
-        // Physics & Limits
-        this.vy *= 0.92; // friction/drag
+        this.vy *= 0.92; // Air resistance
         this.speed = MathUtils.clamp(this.speed, this.minSpeed, this.maxSpeed);
         this.y += this.vy;
         
-        // Boundaries
+        // Ceiling and floor limits
         if (this.y < 50) this.y = 50;
-        if (this.y > H - 150) { 
-            this.y = H - 150; 
-            this.vy = 0; 
-        }
+        if (this.y > H - 150) { this.y = H - 150; this.vy = 0; }
         
-        // Visual Tilt based on movement
+        // Pitch stabilization
         let targetAngle = (this.vy * 0.05) + (this.speed > 10 ? 0.05 : -0.05);
         this.angle += (targetAngle - this.angle) * 0.1;
         
-        // Bombing
+        // Weapon Systems
         if (this.bombCooldown > 0) this.bombCooldown--;
+        
+        // 1. Standard Bomb
         if (keys.space && this.bombCooldown <= 0) {
-            game.bombs.push(new Bomb(game.cameraX + this.x, this.y, this.speed, this.vy));
+            game.bombs.push(new Bomb(game.cameraX + this.x, this.y, this.speed, this.vy, false));
             this.bombCooldown = 40;
             audio.playShoot();
         }
+
+        // 2. Ultimate Bomb System
+        const warningEl = document.getElementById('ult-warning');
+        let isHighAltitude = this.y < (H * 0.3); // Must be in the top 30% of screen to deploy
+
+        if (keys.n && game.ultimates > 0 && this.bombCooldown <= 0) {
+            if (isHighAltitude) {
+                game.bombs.push(new Bomb(game.cameraX + this.x, this.y, this.speed, this.vy, true));
+                game.ultimates--;
+                this.bombCooldown = 60; // Longer recovery after massive payload
+                audio.playShoot();
+                warningEl.style.display = 'none';
+                keys.n = false; // Require separate press
+            } else {
+                warningEl.style.display = 'block';
+            }
+        } else if (!keys.n) {
+            warningEl.style.display = 'none';
+        }
         
-        // Engine Particles
+        // Engine Visuals & Audio
         this.engineTick++;
         if (this.engineTick % 2 === 0) {
             let exX = this.x - 40 * Math.cos(this.angle) + 5 * Math.sin(this.angle);
             let exY = this.y - 40 * Math.sin(this.angle) - 5 * Math.cos(this.angle);
             game.addParticle(game.cameraX + exX, exY, -this.speed*0.5 + MathUtils.rand(-1,1), this.vy + MathUtils.rand(-1,1), 20, '#ff9900', MathUtils.rand(3, 6), 'fire');
         }
-        
-        // Update audio
         audio.updateEngine((this.speed - this.minSpeed) / (this.maxSpeed - this.minSpeed));
         
         return this.speed;
@@ -474,20 +550,17 @@ class Jet {
         ctx.translate(this.x, this.y);
         ctx.rotate(this.angle);
         
-        // Draw shadow
         ctx.shadowColor = 'rgba(0,0,0,0.5)';
         ctx.shadowBlur = 15;
-        ctx.shadowOffsetY = H - this.y - 50; // Dynamic shadow offset
+        ctx.shadowOffsetY = H - this.y - 50; 
         
-        // Jet Body (Procedural Vector Drawing)
-        ctx.fillStyle = '#607D8B'; // Military grey/blue
-        
-        // Main fuselage
+        // Body
+        ctx.fillStyle = '#607D8B'; 
         ctx.beginPath();
-        ctx.moveTo(50, 0);   // Nose
+        ctx.moveTo(50, 0);   
         ctx.lineTo(20, -8);
-        ctx.lineTo(-40, -8); // Tail end top
-        ctx.lineTo(-40, 8);  // Tail end bottom
+        ctx.lineTo(-40, -8); 
+        ctx.lineTo(-40, 8);  
         ctx.lineTo(20, 8);
         ctx.fill();
         
@@ -500,7 +573,7 @@ class Jet {
         ctx.lineTo(5, -8);
         ctx.fill();
         
-        // Wing
+        // Wings & Tail
         ctx.fillStyle = '#455A64';
         ctx.beginPath();
         ctx.moveTo(10, 0);
@@ -509,7 +582,6 @@ class Jet {
         ctx.lineTo(-20, 0);
         ctx.fill();
         
-        // Tail Fin
         ctx.beginPath();
         ctx.moveTo(-20, -8);
         ctx.lineTo(-35, -25);
@@ -526,27 +598,24 @@ class Jet {
     }
 }
 
-/**
- * WEAPON SYSTEMS
- */
 class Bomb {
-    constructor(x, y, vx, vy) {
-        this.x = x;
-        this.y = y;
-        this.vx = vx;
-        this.vy = vy;
+    constructor(x, y, vx, vy, isUltimate = false) {
+        this.x = x; this.y = y;
+        this.vx = vx; this.vy = vy;
         this.angle = 0;
         this.active = true;
+        this.isUltimate = isUltimate; // Determines payload scale
     }
     update(terrain) {
-        this.vy += 0.3; // Gravity
+        this.vy += 0.3; // Ballistics
         this.x += this.vx;
         this.y += this.vy;
         this.angle = Math.atan2(this.vy, this.vx);
         
+        // Ground detection
         if (this.y >= terrain.getHeight(this.x)) {
             this.active = false;
-            return true; // hit ground
+            return true; 
         }
         return false;
     }
@@ -554,60 +623,64 @@ class Bomb {
         ctx.save();
         ctx.translate(this.x - camX, this.y);
         ctx.rotate(this.angle);
-        ctx.fillStyle = '#333';
-        // Bomb shape
-        ctx.beginPath();
-        ctx.ellipse(0, 0, 12, 5, 0, 0, Math.PI * 2);
-        ctx.fill();
-        // Tail fins
-        ctx.fillStyle = '#f00';
-        ctx.fillRect(-12, -4, 4, 8);
+        
+        if (this.isUltimate) {
+            ctx.shadowBlur = 10;
+            ctx.shadowColor = '#f0f';
+            ctx.fillStyle = '#111';
+            ctx.beginPath();
+            ctx.ellipse(0, 0, 20, 8, 0, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.fillStyle = '#f0f';
+            ctx.fillRect(-20, -6, 6, 12);
+            ctx.fillRect(10, -2, 10, 4);
+        } else {
+            ctx.fillStyle = '#333';
+            ctx.beginPath();
+            ctx.ellipse(0, 0, 12, 5, 0, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.fillStyle = '#f00';
+            ctx.fillRect(-12, -4, 4, 8);
+        }
         ctx.restore();
     }
 }
 
 class Missile {
     constructor(x, y) {
-        this.x = x;
-        this.y = y;
-        this.vx = 0;
-        this.vy = -5; // Start shooting up
+        this.x = x; this.y = y;
+        this.vx = 0; this.vy = -5; 
         this.speed = 12;
         this.angle = -Math.PI/2;
         this.active = true;
-        this.life = 300; // Timeout
+        this.life = 300; 
     }
     update(jetX, jetY, game) {
         this.life--;
         if (this.life <= 0) this.active = false;
         
-        // Homing Math
+        // Tracking logic
         let targetAngle = Math.atan2(jetY - this.y, jetX - this.x);
-        
-        // Smooth rotation
         let diff = targetAngle - this.angle;
-        // Normalize angle
         while (diff < -Math.PI) diff += Math.PI * 2;
         while (diff > Math.PI) diff -= Math.PI * 2;
         
-        this.angle += diff * 0.05; // Turn rate
-        
+        this.angle += diff * 0.05; 
         this.vx = Math.cos(this.angle) * this.speed;
         this.vy = Math.sin(this.angle) * this.speed;
         
         this.x += this.vx;
         this.y += this.vy;
         
-        // Smoke trail
         if (this.life % 2 === 0) {
             game.addParticle(this.x, this.y, 0, 0, 30, '#ddd', MathUtils.rand(3, 6), 'smoke');
         }
         
-        // Collision with jet
+        // Collision
         if (MathUtils.distance(this.x, this.y, jetX, jetY) < 30) {
             this.active = false;
             game.jet.takeDamage(20);
-            return true; // hit player
+            return true; 
         }
         return false;
     }
@@ -627,9 +700,7 @@ class Missile {
     }
 }
 
-/**
- * ENEMY VEHICLES
- */
+// Enemy definitions
 const ENEMY_TYPES = {
     TRUCK: { color: '#4CAF50', w: 70, h: 30, hp: 30, score: 100, speed: 2, hasMissile: false },
     LAUNCHER: { color: '#795548', w: 80, h: 35, hp: 50, score: 250, speed: 1.5, hasMissile: true, cooldown: 150 },
@@ -642,13 +713,10 @@ class Vehicle {
     constructor(x, typeKey) {
         this.typeKey = typeKey;
         const config = ENEMY_TYPES[typeKey];
-        this.x = x;
-        this.y = 0;
-        this.w = config.w;
-        this.h = config.h;
+        this.x = x; this.y = 0;
+        this.w = config.w; this.h = config.h;
         this.color = config.color;
-        this.hp = config.hp;
-        this.maxHp = config.hp;
+        this.hp = config.hp; this.maxHp = config.hp;
         this.score = config.score;
         this.speed = config.speed;
         this.hasMissile = config.hasMissile;
@@ -662,18 +730,15 @@ class Vehicle {
     }
     
     update(terrain, game) {
-        this.x += this.speed; // moving right
+        this.x += this.speed; 
         this.y = terrain.getHeight(this.x) - this.h/2 - 10;
         this.angle = terrain.getAngle(this.x);
         this.wheelAngle += this.speed * 0.1;
         
-        // Launcher Logic
         if (this.hasMissile && game.jet) {
             let jetWorldX = game.cameraX + game.jet.x;
-            // Only fire if player is ahead or slightly behind, within range
             let dist = MathUtils.distance(this.x, this.y, jetWorldX, game.jet.y);
             if (dist < 800) {
-                // Aim turret
                 let targetAngle = Math.atan2(game.jet.y - this.y, jetWorldX - this.x);
                 this.turretAngle += (targetAngle - this.turretAngle) * 0.1;
                 
@@ -697,11 +762,11 @@ class Vehicle {
         ctx.translate(this.x - camX, this.y);
         ctx.rotate(this.angle);
         
-        // Draw Shadow
+        // Shadow
         ctx.fillStyle = 'rgba(0,0,0,0.5)';
         ctx.fillRect(-this.w/2, this.h/2, this.w, 8);
         
-        // Draw Chassis
+        // Chassis
         ctx.fillStyle = this.color;
         ctx.fillRect(-this.w/2, -this.h/2, this.w, this.h);
         
@@ -709,25 +774,22 @@ class Vehicle {
         ctx.fillStyle = '#222';
         ctx.fillRect(this.w/2 - 20, -this.h/2 - 15, 20, 15);
         
-        // Type specific details
+        // Unique parts
         if (this.typeKey === 'TANKER') {
             ctx.fillStyle = '#ccc';
             ctx.beginPath();
             ctx.ellipse(-10, -this.h/2 - 10, 30, 15, 0, 0, Math.PI*2);
             ctx.fill();
         } else if (this.typeKey === 'LAUNCHER') {
-            // Draw Turret Base
             ctx.fillStyle = '#555';
             ctx.fillRect(-15, -this.h/2 - 10, 30, 10);
-            // Draw Turret Tube (Rotated)
             ctx.save();
             ctx.translate(0, -this.h/2 - 10);
-            // Counter-rotate chassis angle, then apply turret angle
             ctx.rotate(-this.angle + this.turretAngle);
             ctx.fillStyle = '#333';
             ctx.fillRect(0, -8, 40, 16);
             ctx.fillStyle = '#f00';
-            ctx.fillRect(35, -8, 5, 16); // red tip
+            ctx.fillRect(35, -8, 5, 16); 
             ctx.restore();
         }
         
@@ -735,11 +797,9 @@ class Vehicle {
         ctx.fillStyle = '#111';
         this.drawWheel(ctx, -this.w/2 + 15, this.h/2);
         this.drawWheel(ctx, this.w/2 - 15, this.h/2);
-        if (this.w > 80) {
-            this.drawWheel(ctx, -this.w/2 + 35, this.h/2); // Middle wheel for big vehicles
-        }
+        if (this.w > 80) this.drawWheel(ctx, -this.w/2 + 35, this.h/2); 
         
-        // Health Bar (visible if damaged)
+        // Health bar
         if (this.hp < this.maxHp) {
             ctx.fillStyle = 'red';
             ctx.fillRect(-this.w/2, -this.h/2 - 10, this.w, 4);
@@ -757,7 +817,6 @@ class Vehicle {
         ctx.beginPath();
         ctx.arc(0, 0, 10, 0, Math.PI*2);
         ctx.fill();
-        // Rim
         ctx.fillStyle = '#888';
         ctx.fillRect(-2, -6, 4, 12);
         ctx.fillRect(-6, -2, 12, 4);
@@ -765,15 +824,14 @@ class Vehicle {
     }
 }
 
-/**
- * MAIN GAME LOOP & MANAGER
- */
+// ==========================================
+// CENTRAL GAME CONTROLLER
+// ==========================================
 class Game {
     constructor() {
-        this.state = 'START'; // START, PLAY, OVER
+        this.state = 'START'; 
         this.terrain = new Terrain();
         
-        // ADD THESE 6 LINES: Initialize empty arrays to prevent the forEach error
         this.vehicles = [];
         this.bombs = [];
         this.missiles = [];
@@ -781,7 +839,7 @@ class Game {
         this.debris = [];
         this.raindrops = [];
         
-        // Audio hook
+        // UI Listeners
         document.getElementById('btn-start').addEventListener('click', () => {
             audio.init();
             document.getElementById('start-screen').style.display = 'none';
@@ -812,7 +870,12 @@ class Game {
         this.highScore = localStorage.getItem('strikeHighScore') || 0;
         document.getElementById('high-score').innerText = this.highScore;
         
-        this.gameTime = 0; // for day/night
+        // Ultimate Logic trackers
+        this.killCount = 0;
+        this.ultimates = 0;
+        this.shakeTimer = 0;
+
+        this.gameTime = 0; 
         this.weatherType = Math.random() < 0.3 ? 'RAIN' : 'CLEAR';
         this.raindrops = [];
         if (this.weatherType === 'RAIN') {
@@ -831,10 +894,8 @@ class Game {
     spawnEnemies() {
         this.spawnTimer--;
         if (this.spawnTimer <= 0) {
-            // Spawn ahead of camera
             let spawnX = this.cameraX + W + 200;
             
-            // Random vehicle based on difficulty
             let rand = Math.random();
             let type = 'TRUCK';
             if (this.difficulty > 2 && rand < 0.2) type = 'LAUNCHER';
@@ -843,8 +904,6 @@ class Game {
             else if (rand < 0.6) type = 'BUS';
             
             this.vehicles.push(new Vehicle(spawnX, type));
-            
-            // Time to next spawn decreases with difficulty
             this.spawnTimer = Math.max(60, 200 - this.difficulty * 10);
         }
     }
@@ -855,36 +914,28 @@ class Game {
     
     createExplosion(x, y, size, isTanker) {
         audio.playExplosion(isTanker ? 2 : 1);
+        ctx.translate(MathUtils.rand(-10, 10), MathUtils.rand(-10, 10)); // Minor shake
         
-        // Screen shake
-        ctx.translate(MathUtils.rand(-10, 10), MathUtils.rand(-10, 10));
-        
-        // Fire burst
         for(let i=0; i<20; i++) {
             this.addParticle(x, y, MathUtils.rand(-5,5), MathUtils.rand(-8,2), MathUtils.rand(20,40), '#ffaa00', MathUtils.rand(10,30), 'fire');
         }
-        // Smoke cloud
         for(let i=0; i<15; i++) {
             this.addParticle(x, y, MathUtils.rand(-3,3), MathUtils.rand(-5,1), MathUtils.rand(40,80), '#555', MathUtils.rand(20,40), 'smoke');
         }
-        
-        // Debris
         for(let i=0; i<10; i++) {
             this.debris.push(new Debris(x, y, MathUtils.rand(-10,10), MathUtils.rand(-15,-5), MathUtils.rand(5,20), MathUtils.rand(5,20), '#444'));
         }
         
-        // Area Damage Check
         let radius = isTanker ? 250 : 150;
         this.vehicles.forEach(v => {
             if (!v.active) return;
             let dist = MathUtils.distance(x, y, v.x, v.y);
             if (dist < radius) {
-                v.hp -= isTanker ? 100 : 50; // Damage falloff ignored for simplicity
+                v.hp -= isTanker ? 100 : 50; 
                 if (v.hp <= 0) this.destroyVehicle(v);
             }
         });
         
-        // Jet damage if too close to ground zero
         if (this.jet) {
             let jetDist = MathUtils.distance(x, y, this.cameraX + this.jet.x, this.jet.y);
             if (jetDist < radius * 0.8) {
@@ -893,19 +944,58 @@ class Game {
             }
         }
     }
+
+    createMassiveExplosion(x, y) {
+        audio.playExplosion(3); 
+        
+        // Screen flash logic
+        const flash = document.getElementById('flash-overlay');
+        flash.style.opacity = 1;
+        setTimeout(() => flash.style.opacity = 0, 100);
+
+        // Screen shake logic (90 frames)
+        this.shakeTimer = 90;
+
+        let blastRadius = 600; 
+
+        // Massive particle scatter
+        for(let i=0; i<80; i++) {
+            this.addParticle(x, y, MathUtils.rand(-15,15), MathUtils.rand(-20,5), MathUtils.rand(40,80), '#ff3300', MathUtils.rand(20,60), 'fire');
+            this.addParticle(x, y, MathUtils.rand(-10,10), MathUtils.rand(-10,2), MathUtils.rand(60,120), '#333', MathUtils.rand(30,70), 'smoke');
+        }
+        
+        for(let i=0; i<30; i++) {
+            this.debris.push(new Debris(x, y, MathUtils.rand(-20,20), MathUtils.rand(-25,-10), MathUtils.rand(10,30), MathUtils.rand(10,30), '#222'));
+        }
+
+        // Catastrophic collateral damage
+        this.vehicles.forEach(v => {
+            if (!v.active) return;
+            let dist = MathUtils.distance(x, y, v.x, v.y);
+            if (dist < blastRadius) {
+                v.hp = 0; 
+                this.destroyVehicle(v);
+            }
+        });
+    }
     
     destroyVehicle(v) {
-        if (!v.active) return; // Prevent double trigger
+        if (!v.active) return; 
         v.active = false;
         this.createExplosion(v.x, v.y, 100, v.explosive);
         
-        // Score & Combo
         this.combo++;
-        this.comboTimer = 180; // 3 seconds to chain
+        this.comboTimer = 180; 
         let earned = v.score * this.combo;
         this.score += earned;
+
+        // Earn an ultimate bomb every 3 kills
+        this.killCount++;
+        if (this.killCount >= 3) {
+            if (this.ultimates < 3) this.ultimates++;
+            this.killCount = 0; 
+        }
         
-        // Combo UI Effect
         let cText = document.getElementById('combo-text');
         cText.style.opacity = 1;
         cText.style.transform = 'scale(1.5)';
@@ -914,15 +1004,12 @@ class Game {
     }
     
     updateSystems() {
-        // Camera follows jet speed
         let speed = this.jet.update(this);
         this.cameraX += speed;
-        this.difficulty = 1 + (this.cameraX / 10000); // Scale difficulty with distance
+        this.difficulty = 1 + (this.cameraX / 10000); 
         
-        // Spawn Enemies
         this.spawnEnemies();
         
-        // Update Combo
         if (this.comboTimer > 0) {
             this.comboTimer--;
             if (this.comboTimer === 0) {
@@ -931,31 +1018,28 @@ class Game {
             }
         }
         
-        // Update Bombs
+        // Bomb updates and payload trigger checks
         for (let i = this.bombs.length - 1; i >= 0; i--) {
             let b = this.bombs[i];
             let hitGround = b.update(this.terrain);
             if (hitGround) {
-                this.createExplosion(b.x, b.y, 50, false);
+                if (b.isUltimate) {
+                    this.createMassiveExplosion(b.x, b.y);
+                } else {
+                    this.createExplosion(b.x, b.y, 50, false);
+                }
                 this.bombs.splice(i, 1);
             }
         }
         
-        // Update Vehicles
+        // Entity cleanup
         for (let i = this.vehicles.length - 1; i >= 0; i--) {
             let v = this.vehicles[i];
             v.update(this.terrain, this);
-            
-            // Remove if far behind camera
-            if (v.x < this.cameraX - 500) {
-                v.active = false;
-            }
-            if (!v.active) {
-                this.vehicles.splice(i, 1);
-            }
+            if (v.x < this.cameraX - 500) v.active = false;
+            if (!v.active) this.vehicles.splice(i, 1);
         }
         
-        // Update Missiles
         for (let i = this.missiles.length - 1; i >= 0; i--) {
             let m = this.missiles[i];
             let hit = m.update(this.cameraX + this.jet.x, this.jet.y, this);
@@ -965,25 +1049,17 @@ class Game {
             }
         }
         
-        // Update Particles
         for (let i = this.particles.length - 1; i >= 0; i--) {
-            if (!this.particles[i].update()) {
-                this.particles.splice(i, 1);
-            }
+            if (!this.particles[i].update()) this.particles.splice(i, 1);
         }
         
-        // Update Debris
         for (let i = this.debris.length - 1; i >= 0; i--) {
-            if (!this.debris[i].update(this.terrain)) {
-                this.debris.splice(i, 1);
-            }
+            if (!this.debris[i].update(this.terrain)) this.debris.splice(i, 1);
         }
         
-        // Day/Night Cycle (0 to 1 mapping)
         this.gameTime += 0.0005;
         if (this.gameTime > 1) this.gameTime = 0;
         
-        // Game Over Check
         if (this.jet.hp <= 0) {
             this.createExplosion(this.cameraX + this.jet.x, this.jet.y, 200, true);
             this.state = 'OVER';
@@ -993,54 +1069,68 @@ class Game {
     }
     
     drawSystems() {
-        // Dynamic Sky Gradient based on Time of Day
         let time = this.gameTime;
         let skyGradient = ctx.createLinearGradient(0, 0, 0, H);
         
-        if (time < 0.25) { // Morning
-            skyGradient.addColorStop(0, '#4a7c59');
-            skyGradient.addColorStop(1, '#c89666');
-        } else if (time < 0.5) { // Day
-            skyGradient.addColorStop(0, '#1E88E5');
-            skyGradient.addColorStop(1, '#90CAF9');
-        } else if (time < 0.75) { // Evening
-            skyGradient.addColorStop(0, '#FF7043');
-            skyGradient.addColorStop(1, '#FFCA28');
-        } else { // Night
-            skyGradient.addColorStop(0, '#0a0a2a');
-            skyGradient.addColorStop(1, '#1a1a3a');
+        // Sky Aesthetics
+        if (time < 0.25) { 
+            skyGradient.addColorStop(0, '#ff9a9e');
+            skyGradient.addColorStop(1, '#fecfef');
+        } else if (time < 0.5) { 
+            skyGradient.addColorStop(0, '#89f7fe');
+            skyGradient.addColorStop(1, '#66a6ff');
+        } else if (time < 0.75) { 
+            skyGradient.addColorStop(0, '#2b1055');
+            skyGradient.addColorStop(0.5, '#7597de');
+            skyGradient.addColorStop(1, '#ffb88c');
+        } else { 
+            skyGradient.addColorStop(0, '#0f2027');
+            skyGradient.addColorStop(0.5, '#203a43');
+            skyGradient.addColorStop(1, '#2c5364');
         }
         
         ctx.fillStyle = skyGradient;
         ctx.fillRect(0, 0, W, H);
         
-        // Draw Stars if Night
+        // Celestial Body
+        let celestialY = H * 0.4 + Math.sin(time * Math.PI * 2) * H * 0.3; 
+        ctx.save();
+        ctx.beginPath();
+        ctx.arc(W * 0.5, celestialY, 60, 0, Math.PI * 2);
+        
+        if (time < 0.25 || time >= 0.75) {
+            ctx.fillStyle = 'rgba(255, 255, 255, 0.8)';
+            ctx.shadowColor = '#fff';
+            ctx.shadowBlur = 30;
+        } else {
+            ctx.fillStyle = 'rgba(255, 230, 100, 0.9)';
+            ctx.shadowColor = '#ffcc00';
+            ctx.shadowBlur = 50;
+        }
+        ctx.fill();
+        ctx.restore();
+        
+        // Stars
         if (time > 0.75 || time < 0.1) {
             let alpha = time > 0.75 ? (time - 0.75) * 4 : 1 - (time * 10);
             ctx.fillStyle = `rgba(255, 255, 255, ${alpha})`;
             for (let i = 0; i < 50; i++) {
-                // Pseudo random based on i to keep stars static
                 let sx = (i * 1234) % W;
                 let sy = (i * 5678) % (H / 2);
                 ctx.fillRect(sx, sy, 2, 2);
             }
         }
         
-        // Draw World
         this.terrain.draw(ctx, this.cameraX, time);
-        
         this.debris.forEach(d => d.draw(ctx, this.cameraX));
         this.vehicles.forEach(v => v.draw(ctx, this.cameraX));
         this.bombs.forEach(b => b.draw(ctx, this.cameraX));
         this.missiles.forEach(m => m.draw(ctx, this.cameraX));
         
-        if (this.state === 'PLAY') {
-            this.jet.draw(ctx);
-        }
-        
+        if (this.state === 'PLAY') this.jet.draw(ctx);
         this.particles.forEach(p => p.draw(ctx, this.cameraX));
         
-        // Weather Effects Overlay
+        // Weather
         if (this.weatherType === 'RAIN') {
             ctx.strokeStyle = 'rgba(200,200,255,0.4)';
             ctx.lineWidth = 1;
@@ -1053,7 +1143,6 @@ class Game {
                 if(r.y > H) { r.y = -20; r.x = Math.random()*W + 200; }
             });
             ctx.stroke();
-            // Fog overlay
             ctx.fillStyle = 'rgba(200,210,220,0.2)';
             ctx.fillRect(0, 0, W, H);
         }
@@ -1067,6 +1156,11 @@ class Game {
             document.getElementById('health-bar').style.background = this.jet.hp < 30 ? '#f00' : '#0f0';
             document.getElementById('bomb-count').innerText = this.jet.bombCooldown <= 0 ? 'READY' : 'RELOADING...';
             document.getElementById('bomb-count').style.color = this.jet.bombCooldown <= 0 ? '#0f0' : '#fa0';
+            
+            // Ultimate System HUD updates
+            let altPercent = Math.max(0, 100 - Math.floor((this.jet.y / H) * 100));
+            document.getElementById('altitude').innerText = altPercent;
+            document.getElementById('ult-count').innerText = this.ultimates;
         }
     }
     
@@ -1087,33 +1181,34 @@ class Game {
         let dt = timestamp - this.lastTime;
         this.lastTime = timestamp;
         
-        // FPS Calc
-        if (timestamp % 30 < 1) {
-            document.getElementById('fps').innerText = Math.round(1000 / dt);
-        }
+        if (timestamp % 30 < 1) document.getElementById('fps').innerText = Math.round(1000 / dt);
         
         ctx.save();
-        // Reset transforms
         ctx.setTransform(1, 0, 0, 1, 0, 0);
         
-        if (this.state === 'PLAY') {
-            this.updateSystems();
+        if (this.state === 'PLAY') this.updateSystems();
+        
+        // Massive Explosion Screen Shake Translation
+        if (this.shakeTimer > 0) {
+            let shakeIntensity = (this.shakeTimer / 90) * 15;
+            let dx = MathUtils.rand(-shakeIntensity, shakeIntensity);
+            let dy = MathUtils.rand(-shakeIntensity, shakeIntensity);
+            ctx.translate(dx, dy);
+            this.shakeTimer--;
         }
         
         this.drawSystems();
         ctx.restore();
         
-        if (this.state === 'PLAY') {
-            this.updateHUD();
-        }
+        if (this.state === 'PLAY') this.updateHUD();
         
         requestAnimationFrame(this.loop);
     }
 }
 
-// Start visual loop (menu background) before user clicks
+// Engage Game Loop
 window.onload = () => {
-    let dummyGame = new Game(); // Instantiates background rendering loop
+    let dummyGame = new Game(); 
 };
 </script>
 </body>

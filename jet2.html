@@ -60,10 +60,6 @@
     </div>
 
 <script>
-/**
- * BEGINNER FRIENDLY UTILITIES & SETUP
- * We use ES6 Classes to organize our game entities.
- */
 const canvas = document.getElementById('gameCanvas');
 const ctx = canvas.getContext('2d');
 let W = canvas.width = window.innerWidth;
@@ -74,7 +70,6 @@ window.addEventListener('resize', () => {
     H = canvas.height = window.innerHeight;
 });
 
-// Input handling
 const keys = { w: false, a: false, s: false, d: false, space: false };
 window.addEventListener('keydown', e => {
     if(e.code === 'KeyW' || e.key === 'ArrowUp') keys.w = true;
@@ -91,23 +86,16 @@ window.addEventListener('keyup', e => {
     if(e.code === 'Space') keys.space = false;
 });
 
-// Math Utils
 const MathUtils = {
     rand: (min, max) => Math.random() * (max - min) + min,
     distance: (x1, y1, x2, y2) => Math.hypot(x2 - x1, y2 - y1),
     clamp: (val, min, max) => Math.max(min, Math.min(max, val))
 };
 
-/**
- * AUDIO SYSTEM (Web Audio API)
- * Procedurally generates sound effects without external files.
- */
 class AudioSystem {
     constructor() {
         this.ctx = new (window.AudioContext || window.webkitAudioContext)();
         this.enabled = false;
-        
-        // Engine sound nodes
         this.engineOsc = null;
         this.engineGain = null;
     }
@@ -124,13 +112,12 @@ class AudioSystem {
         this.engineOsc.type = 'sawtooth';
         this.engineOsc.frequency.value = 60;
         
-        // Filter to make it sound muffled/bassy
         const filter = this.ctx.createBiquadFilter();
         filter.type = 'lowpass';
         filter.frequency.value = 200;
         
         this.engineGain = this.ctx.createGain();
-        this.engineGain.gain.value = 0; // Starts silent
+        this.engineGain.gain.value = 0; 
         
         this.engineOsc.connect(filter);
         filter.connect(this.engineGain);
@@ -140,7 +127,6 @@ class AudioSystem {
     
     updateEngine(speedRatio) {
         if (!this.enabled || !this.engineGain) return;
-        // Adjust pitch and volume based on jet speed
         this.engineOsc.frequency.setTargetAtTime(60 + speedRatio * 80, this.ctx.currentTime, 0.1);
         this.engineGain.gain.setTargetAtTime(0.1 + speedRatio * 0.15, this.ctx.currentTime, 0.1);
     }
@@ -175,24 +161,45 @@ class AudioSystem {
         return buffer;
     }
     
+    // UPDATED: Deep drum explosion
     playExplosion(intensity = 1) {
         if (!this.enabled) return;
+
+        // 1. Deep Drum Oscillator (Sine wave dropping in pitch)
+        const osc = this.ctx.createOscillator();
+        const oscGain = this.ctx.createGain();
+        osc.type = 'sine'; // A smooth, deep wave
+
+        // Rapid pitch drop creates the "thump" of a large drum
+        osc.frequency.setValueAtTime(150 * intensity, this.ctx.currentTime);
+        osc.frequency.exponentialRampToValueAtTime(20, this.ctx.currentTime + 0.6);
+
+        // Fade out volume
+        oscGain.gain.setValueAtTime(1.5 * intensity, this.ctx.currentTime);
+        oscGain.gain.exponentialRampToValueAtTime(0.01, this.ctx.currentTime + 0.8);
+
+        osc.connect(oscGain);
+        oscGain.connect(this.ctx.destination);
+        osc.start();
+        osc.stop(this.ctx.currentTime + 0.8);
+
+        // 2. Muffled Impact (Lowpass noise)
         const noiseBuffer = this.createNoiseBuffer();
         const noiseSource = this.ctx.createBufferSource();
         noiseSource.buffer = noiseBuffer;
-        
+
         const filter = this.ctx.createBiquadFilter();
         filter.type = 'lowpass';
-        filter.frequency.setValueAtTime(1000 * intensity, this.ctx.currentTime);
-        filter.frequency.exponentialRampToValueAtTime(100, this.ctx.currentTime + 1);
-        
-        const gain = this.ctx.createGain();
-        gain.gain.setValueAtTime(0.8 * intensity, this.ctx.currentTime);
-        gain.gain.exponentialRampToValueAtTime(0.01, this.ctx.currentTime + 1);
-        
+        filter.frequency.setValueAtTime(200, this.ctx.currentTime); // Keep it low and muddy
+        filter.frequency.exponentialRampToValueAtTime(40, this.ctx.currentTime + 0.4);
+
+        const noiseGain = this.ctx.createGain();
+        noiseGain.gain.setValueAtTime(0.5 * intensity, this.ctx.currentTime);
+        noiseGain.gain.exponentialRampToValueAtTime(0.01, this.ctx.currentTime + 0.4);
+
         noiseSource.connect(filter);
-        filter.connect(gain);
-        gain.connect(this.ctx.destination);
+        filter.connect(noiseGain);
+        noiseGain.connect(this.ctx.destination);
         noiseSource.start();
     }
     
@@ -238,10 +245,6 @@ class AudioSystem {
 
 const audio = new AudioSystem();
 
-/**
- * PARTICLES & DEBRIS SYSTEM
- * Handles explosions, smoke, dust, and chunks of vehicles.
- */
 class Particle {
     constructor(x, y, vx, vy, life, color, size, type = 'normal') {
         this.x = x;
@@ -252,7 +255,7 @@ class Particle {
         this.maxLife = life;
         this.color = color;
         this.size = size;
-        this.type = type; // 'normal', 'smoke', 'fire'
+        this.type = type; 
         this.alpha = 1;
     }
     update() {
@@ -264,10 +267,10 @@ class Particle {
         if (this.type === 'smoke') {
             this.size += 0.2;
             this.vx *= 0.95;
-            this.vy -= 0.05; // smoke rises
+            this.vy -= 0.05; 
         } else if (this.type === 'fire') {
             this.size *= 0.95;
-            this.vy -= 0.1; // fire goes up
+            this.vy -= 0.1; 
         }
         
         return this.life > 0;
@@ -301,13 +304,12 @@ class Debris {
         this.life = 100;
     }
     update(terrain) {
-        this.vy += 0.5; // gravity
+        this.vy += 0.5; 
         this.x += this.vx;
         this.y += this.vy;
         this.angle += this.spin;
         this.life--;
         
-        // Bounce off terrain
         let groundY = terrain.getHeight(this.x);
         if (this.y > groundY) {
             this.y = groundY;
@@ -328,17 +330,12 @@ class Debris {
     }
 }
 
-/**
- * TERRAIN SYSTEM
- * Generates continuous sine-wave based mountains and roads.
- */
 class Terrain {
     constructor() {
         this.seed = Math.random() * 1000;
     }
     
     getHeight(x) {
-        // Multi-layered sine waves for natural-looking hills
         const xOffset = x + this.seed;
         const base = H * 0.75;
         const wave1 = Math.sin(xOffset * 0.001) * 150;
@@ -348,14 +345,12 @@ class Terrain {
     }
     
     getAngle(x) {
-        // Derivative (slope) to angle
         const h1 = this.getHeight(x - 5);
         const h2 = this.getHeight(x + 5);
         return Math.atan2(h2 - h1, 10);
     }
     
     draw(ctx, camX, timeOfDay) {
-        // Parallax Mountains (Background)
         ctx.fillStyle = this.getMountainColor(timeOfDay);
         ctx.beginPath();
         ctx.moveTo(0, H);
@@ -367,7 +362,6 @@ class Terrain {
         ctx.lineTo(W, H);
         ctx.fill();
 
-        // Foreground Terrain
         ctx.fillStyle = this.getTerrainColor(timeOfDay);
         ctx.beginPath();
         ctx.moveTo(0, H);
@@ -378,7 +372,6 @@ class Terrain {
         ctx.lineTo(W, H);
         ctx.fill();
 
-        // Draw Road Line
         ctx.lineWidth = 6;
         ctx.strokeStyle = '#444';
         ctx.beginPath();
@@ -390,11 +383,10 @@ class Terrain {
     }
     
     getTerrainColor(time) {
-        // Blend colors based on time (0-1)
-        if (time < 0.25) return '#a67c00'; // Morning
-        if (time < 0.5) return '#cda434'; // Day
-        if (time < 0.75) return '#8c5912'; // Evening
-        return '#2a1f10'; // Night
+        if (time < 0.25) return '#a67c00'; 
+        if (time < 0.5) return '#cda434'; 
+        if (time < 0.75) return '#8c5912'; 
+        return '#2a1f10'; 
     }
     
     getMountainColor(time) {
@@ -405,15 +397,12 @@ class Terrain {
     }
 }
 
-/**
- * PLAYER JET
- */
 class Jet {
     constructor() {
-        this.x = W * 0.2; // Fixed screen X position relative to camera logic
+        this.x = W * 0.2; 
         this.y = H * 0.2;
         this.vy = 0;
-        this.vx = 8; // Forward speed (camera speed)
+        this.vx = 8; 
         this.speed = 10;
         this.maxSpeed = 18;
         this.minSpeed = 5;
@@ -425,29 +414,24 @@ class Jet {
     }
     
     update(game) {
-        // Controls
         if (keys.w) this.vy -= 0.5;
         if (keys.s) this.vy += 0.5;
         if (keys.a) this.speed -= 0.2;
         if (keys.d) this.speed += 0.2;
         
-        // Physics & Limits
-        this.vy *= 0.92; // friction/drag
+        this.vy *= 0.92; 
         this.speed = MathUtils.clamp(this.speed, this.minSpeed, this.maxSpeed);
         this.y += this.vy;
         
-        // Boundaries
         if (this.y < 50) this.y = 50;
         if (this.y > H - 150) { 
             this.y = H - 150; 
             this.vy = 0; 
         }
         
-        // Visual Tilt based on movement
         let targetAngle = (this.vy * 0.05) + (this.speed > 10 ? 0.05 : -0.05);
         this.angle += (targetAngle - this.angle) * 0.1;
         
-        // Bombing
         if (this.bombCooldown > 0) this.bombCooldown--;
         if (keys.space && this.bombCooldown <= 0) {
             game.bombs.push(new Bomb(game.cameraX + this.x, this.y, this.speed, this.vy));
@@ -455,7 +439,6 @@ class Jet {
             audio.playShoot();
         }
         
-        // Engine Particles
         this.engineTick++;
         if (this.engineTick % 2 === 0) {
             let exX = this.x - 40 * Math.cos(this.angle) + 5 * Math.sin(this.angle);
@@ -463,7 +446,6 @@ class Jet {
             game.addParticle(game.cameraX + exX, exY, -this.speed*0.5 + MathUtils.rand(-1,1), this.vy + MathUtils.rand(-1,1), 20, '#ff9900', MathUtils.rand(3, 6), 'fire');
         }
         
-        // Update audio
         audio.updateEngine((this.speed - this.minSpeed) / (this.maxSpeed - this.minSpeed));
         
         return this.speed;
@@ -474,24 +456,20 @@ class Jet {
         ctx.translate(this.x, this.y);
         ctx.rotate(this.angle);
         
-        // Draw shadow
         ctx.shadowColor = 'rgba(0,0,0,0.5)';
         ctx.shadowBlur = 15;
-        ctx.shadowOffsetY = H - this.y - 50; // Dynamic shadow offset
+        ctx.shadowOffsetY = H - this.y - 50; 
         
-        // Jet Body (Procedural Vector Drawing)
-        ctx.fillStyle = '#607D8B'; // Military grey/blue
+        ctx.fillStyle = '#607D8B'; 
         
-        // Main fuselage
         ctx.beginPath();
-        ctx.moveTo(50, 0);   // Nose
+        ctx.moveTo(50, 0);   
         ctx.lineTo(20, -8);
-        ctx.lineTo(-40, -8); // Tail end top
-        ctx.lineTo(-40, 8);  // Tail end bottom
+        ctx.lineTo(-40, -8); 
+        ctx.lineTo(-40, 8);  
         ctx.lineTo(20, 8);
         ctx.fill();
         
-        // Cockpit
         ctx.fillStyle = '#81D4FA';
         ctx.beginPath();
         ctx.moveTo(30, -5);
@@ -500,7 +478,6 @@ class Jet {
         ctx.lineTo(5, -8);
         ctx.fill();
         
-        // Wing
         ctx.fillStyle = '#455A64';
         ctx.beginPath();
         ctx.moveTo(10, 0);
@@ -509,7 +486,6 @@ class Jet {
         ctx.lineTo(-20, 0);
         ctx.fill();
         
-        // Tail Fin
         ctx.beginPath();
         ctx.moveTo(-20, -8);
         ctx.lineTo(-35, -25);
@@ -526,9 +502,6 @@ class Jet {
     }
 }
 
-/**
- * WEAPON SYSTEMS
- */
 class Bomb {
     constructor(x, y, vx, vy) {
         this.x = x;
@@ -539,14 +512,14 @@ class Bomb {
         this.active = true;
     }
     update(terrain) {
-        this.vy += 0.3; // Gravity
+        this.vy += 0.3; 
         this.x += this.vx;
         this.y += this.vy;
         this.angle = Math.atan2(this.vy, this.vx);
         
         if (this.y >= terrain.getHeight(this.x)) {
             this.active = false;
-            return true; // hit ground
+            return true; 
         }
         return false;
     }
@@ -555,11 +528,9 @@ class Bomb {
         ctx.translate(this.x - camX, this.y);
         ctx.rotate(this.angle);
         ctx.fillStyle = '#333';
-        // Bomb shape
         ctx.beginPath();
         ctx.ellipse(0, 0, 12, 5, 0, 0, Math.PI * 2);
         ctx.fill();
-        // Tail fins
         ctx.fillStyle = '#f00';
         ctx.fillRect(-12, -4, 4, 8);
         ctx.restore();
@@ -571,26 +542,23 @@ class Missile {
         this.x = x;
         this.y = y;
         this.vx = 0;
-        this.vy = -5; // Start shooting up
+        this.vy = -5; 
         this.speed = 12;
         this.angle = -Math.PI/2;
         this.active = true;
-        this.life = 300; // Timeout
+        this.life = 300; 
     }
     update(jetX, jetY, game) {
         this.life--;
         if (this.life <= 0) this.active = false;
         
-        // Homing Math
         let targetAngle = Math.atan2(jetY - this.y, jetX - this.x);
         
-        // Smooth rotation
         let diff = targetAngle - this.angle;
-        // Normalize angle
         while (diff < -Math.PI) diff += Math.PI * 2;
         while (diff > Math.PI) diff -= Math.PI * 2;
         
-        this.angle += diff * 0.05; // Turn rate
+        this.angle += diff * 0.05; 
         
         this.vx = Math.cos(this.angle) * this.speed;
         this.vy = Math.sin(this.angle) * this.speed;
@@ -598,16 +566,14 @@ class Missile {
         this.x += this.vx;
         this.y += this.vy;
         
-        // Smoke trail
         if (this.life % 2 === 0) {
             game.addParticle(this.x, this.y, 0, 0, 30, '#ddd', MathUtils.rand(3, 6), 'smoke');
         }
         
-        // Collision with jet
         if (MathUtils.distance(this.x, this.y, jetX, jetY) < 30) {
             this.active = false;
             game.jet.takeDamage(20);
-            return true; // hit player
+            return true; 
         }
         return false;
     }
@@ -627,9 +593,6 @@ class Missile {
     }
 }
 
-/**
- * ENEMY VEHICLES
- */
 const ENEMY_TYPES = {
     TRUCK: { color: '#4CAF50', w: 70, h: 30, hp: 30, score: 100, speed: 2, hasMissile: false },
     LAUNCHER: { color: '#795548', w: 80, h: 35, hp: 50, score: 250, speed: 1.5, hasMissile: true, cooldown: 150 },
@@ -662,18 +625,15 @@ class Vehicle {
     }
     
     update(terrain, game) {
-        this.x += this.speed; // moving right
+        this.x += this.speed; 
         this.y = terrain.getHeight(this.x) - this.h/2 - 10;
         this.angle = terrain.getAngle(this.x);
         this.wheelAngle += this.speed * 0.1;
         
-        // Launcher Logic
         if (this.hasMissile && game.jet) {
             let jetWorldX = game.cameraX + game.jet.x;
-            // Only fire if player is ahead or slightly behind, within range
             let dist = MathUtils.distance(this.x, this.y, jetWorldX, game.jet.y);
             if (dist < 800) {
-                // Aim turret
                 let targetAngle = Math.atan2(game.jet.y - this.y, jetWorldX - this.x);
                 this.turretAngle += (targetAngle - this.turretAngle) * 0.1;
                 
@@ -697,49 +657,40 @@ class Vehicle {
         ctx.translate(this.x - camX, this.y);
         ctx.rotate(this.angle);
         
-        // Draw Shadow
         ctx.fillStyle = 'rgba(0,0,0,0.5)';
         ctx.fillRect(-this.w/2, this.h/2, this.w, 8);
         
-        // Draw Chassis
         ctx.fillStyle = this.color;
         ctx.fillRect(-this.w/2, -this.h/2, this.w, this.h);
         
-        // Cabin
         ctx.fillStyle = '#222';
         ctx.fillRect(this.w/2 - 20, -this.h/2 - 15, 20, 15);
         
-        // Type specific details
         if (this.typeKey === 'TANKER') {
             ctx.fillStyle = '#ccc';
             ctx.beginPath();
             ctx.ellipse(-10, -this.h/2 - 10, 30, 15, 0, 0, Math.PI*2);
             ctx.fill();
         } else if (this.typeKey === 'LAUNCHER') {
-            // Draw Turret Base
             ctx.fillStyle = '#555';
             ctx.fillRect(-15, -this.h/2 - 10, 30, 10);
-            // Draw Turret Tube (Rotated)
             ctx.save();
             ctx.translate(0, -this.h/2 - 10);
-            // Counter-rotate chassis angle, then apply turret angle
             ctx.rotate(-this.angle + this.turretAngle);
             ctx.fillStyle = '#333';
             ctx.fillRect(0, -8, 40, 16);
             ctx.fillStyle = '#f00';
-            ctx.fillRect(35, -8, 5, 16); // red tip
+            ctx.fillRect(35, -8, 5, 16); 
             ctx.restore();
         }
         
-        // Wheels
         ctx.fillStyle = '#111';
         this.drawWheel(ctx, -this.w/2 + 15, this.h/2);
         this.drawWheel(ctx, this.w/2 - 15, this.h/2);
         if (this.w > 80) {
-            this.drawWheel(ctx, -this.w/2 + 35, this.h/2); // Middle wheel for big vehicles
+            this.drawWheel(ctx, -this.w/2 + 35, this.h/2); 
         }
         
-        // Health Bar (visible if damaged)
         if (this.hp < this.maxHp) {
             ctx.fillStyle = 'red';
             ctx.fillRect(-this.w/2, -this.h/2 - 10, this.w, 4);
@@ -757,7 +708,6 @@ class Vehicle {
         ctx.beginPath();
         ctx.arc(0, 0, 10, 0, Math.PI*2);
         ctx.fill();
-        // Rim
         ctx.fillStyle = '#888';
         ctx.fillRect(-2, -6, 4, 12);
         ctx.fillRect(-6, -2, 12, 4);
@@ -765,15 +715,11 @@ class Vehicle {
     }
 }
 
-/**
- * MAIN GAME LOOP & MANAGER
- */
 class Game {
     constructor() {
-        this.state = 'START'; // START, PLAY, OVER
+        this.state = 'START'; 
         this.terrain = new Terrain();
         
-        // ADD THESE 6 LINES: Initialize empty arrays to prevent the forEach error
         this.vehicles = [];
         this.bombs = [];
         this.missiles = [];
@@ -781,7 +727,6 @@ class Game {
         this.debris = [];
         this.raindrops = [];
         
-        // Audio hook
         document.getElementById('btn-start').addEventListener('click', () => {
             audio.init();
             document.getElementById('start-screen').style.display = 'none';
@@ -812,7 +757,7 @@ class Game {
         this.highScore = localStorage.getItem('strikeHighScore') || 0;
         document.getElementById('high-score').innerText = this.highScore;
         
-        this.gameTime = 0; // for day/night
+        this.gameTime = 0; 
         this.weatherType = Math.random() < 0.3 ? 'RAIN' : 'CLEAR';
         this.raindrops = [];
         if (this.weatherType === 'RAIN') {
@@ -831,10 +776,8 @@ class Game {
     spawnEnemies() {
         this.spawnTimer--;
         if (this.spawnTimer <= 0) {
-            // Spawn ahead of camera
             let spawnX = this.cameraX + W + 200;
             
-            // Random vehicle based on difficulty
             let rand = Math.random();
             let type = 'TRUCK';
             if (this.difficulty > 2 && rand < 0.2) type = 'LAUNCHER';
@@ -844,7 +787,6 @@ class Game {
             
             this.vehicles.push(new Vehicle(spawnX, type));
             
-            // Time to next spawn decreases with difficulty
             this.spawnTimer = Math.max(60, 200 - this.difficulty * 10);
         }
     }
@@ -856,35 +798,29 @@ class Game {
     createExplosion(x, y, size, isTanker) {
         audio.playExplosion(isTanker ? 2 : 1);
         
-        // Screen shake
         ctx.translate(MathUtils.rand(-10, 10), MathUtils.rand(-10, 10));
         
-        // Fire burst
         for(let i=0; i<20; i++) {
             this.addParticle(x, y, MathUtils.rand(-5,5), MathUtils.rand(-8,2), MathUtils.rand(20,40), '#ffaa00', MathUtils.rand(10,30), 'fire');
         }
-        // Smoke cloud
         for(let i=0; i<15; i++) {
             this.addParticle(x, y, MathUtils.rand(-3,3), MathUtils.rand(-5,1), MathUtils.rand(40,80), '#555', MathUtils.rand(20,40), 'smoke');
         }
         
-        // Debris
         for(let i=0; i<10; i++) {
             this.debris.push(new Debris(x, y, MathUtils.rand(-10,10), MathUtils.rand(-15,-5), MathUtils.rand(5,20), MathUtils.rand(5,20), '#444'));
         }
         
-        // Area Damage Check
         let radius = isTanker ? 250 : 150;
         this.vehicles.forEach(v => {
             if (!v.active) return;
             let dist = MathUtils.distance(x, y, v.x, v.y);
             if (dist < radius) {
-                v.hp -= isTanker ? 100 : 50; // Damage falloff ignored for simplicity
+                v.hp -= isTanker ? 100 : 50; 
                 if (v.hp <= 0) this.destroyVehicle(v);
             }
         });
         
-        // Jet damage if too close to ground zero
         if (this.jet) {
             let jetDist = MathUtils.distance(x, y, this.cameraX + this.jet.x, this.jet.y);
             if (jetDist < radius * 0.8) {
@@ -895,17 +831,15 @@ class Game {
     }
     
     destroyVehicle(v) {
-        if (!v.active) return; // Prevent double trigger
+        if (!v.active) return; 
         v.active = false;
         this.createExplosion(v.x, v.y, 100, v.explosive);
         
-        // Score & Combo
         this.combo++;
-        this.comboTimer = 180; // 3 seconds to chain
+        this.comboTimer = 180; 
         let earned = v.score * this.combo;
         this.score += earned;
         
-        // Combo UI Effect
         let cText = document.getElementById('combo-text');
         cText.style.opacity = 1;
         cText.style.transform = 'scale(1.5)';
@@ -914,15 +848,12 @@ class Game {
     }
     
     updateSystems() {
-        // Camera follows jet speed
         let speed = this.jet.update(this);
         this.cameraX += speed;
-        this.difficulty = 1 + (this.cameraX / 10000); // Scale difficulty with distance
+        this.difficulty = 1 + (this.cameraX / 10000); 
         
-        // Spawn Enemies
         this.spawnEnemies();
         
-        // Update Combo
         if (this.comboTimer > 0) {
             this.comboTimer--;
             if (this.comboTimer === 0) {
@@ -931,7 +862,6 @@ class Game {
             }
         }
         
-        // Update Bombs
         for (let i = this.bombs.length - 1; i >= 0; i--) {
             let b = this.bombs[i];
             let hitGround = b.update(this.terrain);
@@ -941,12 +871,10 @@ class Game {
             }
         }
         
-        // Update Vehicles
         for (let i = this.vehicles.length - 1; i >= 0; i--) {
             let v = this.vehicles[i];
             v.update(this.terrain, this);
             
-            // Remove if far behind camera
             if (v.x < this.cameraX - 500) {
                 v.active = false;
             }
@@ -955,7 +883,6 @@ class Game {
             }
         }
         
-        // Update Missiles
         for (let i = this.missiles.length - 1; i >= 0; i--) {
             let m = this.missiles[i];
             let hit = m.update(this.cameraX + this.jet.x, this.jet.y, this);
@@ -965,25 +892,21 @@ class Game {
             }
         }
         
-        // Update Particles
         for (let i = this.particles.length - 1; i >= 0; i--) {
             if (!this.particles[i].update()) {
                 this.particles.splice(i, 1);
             }
         }
         
-        // Update Debris
         for (let i = this.debris.length - 1; i >= 0; i--) {
             if (!this.debris[i].update(this.terrain)) {
                 this.debris.splice(i, 1);
             }
         }
         
-        // Day/Night Cycle (0 to 1 mapping)
         this.gameTime += 0.0005;
         if (this.gameTime > 1) this.gameTime = 0;
         
-        // Game Over Check
         if (this.jet.hp <= 0) {
             this.createExplosion(this.cameraX + this.jet.x, this.jet.y, 200, true);
             this.state = 'OVER';
@@ -992,41 +915,61 @@ class Game {
         }
     }
     
+    // UPDATED: Aesthetic sky rendering
     drawSystems() {
-        // Dynamic Sky Gradient based on Time of Day
         let time = this.gameTime;
         let skyGradient = ctx.createLinearGradient(0, 0, 0, H);
         
-        if (time < 0.25) { // Morning
-            skyGradient.addColorStop(0, '#4a7c59');
-            skyGradient.addColorStop(1, '#c89666');
-        } else if (time < 0.5) { // Day
-            skyGradient.addColorStop(0, '#1E88E5');
-            skyGradient.addColorStop(1, '#90CAF9');
-        } else if (time < 0.75) { // Evening
-            skyGradient.addColorStop(0, '#FF7043');
-            skyGradient.addColorStop(1, '#FFCA28');
-        } else { // Night
-            skyGradient.addColorStop(0, '#0a0a2a');
-            skyGradient.addColorStop(1, '#1a1a3a');
+        // Define aesthetic color palettes based on time of day
+        if (time < 0.25) { // Morning: Soft pink and peach
+            skyGradient.addColorStop(0, '#ff9a9e');
+            skyGradient.addColorStop(1, '#fecfef');
+        } else if (time < 0.5) { // Day: Bright cyan and sky blue
+            skyGradient.addColorStop(0, '#89f7fe');
+            skyGradient.addColorStop(1, '#66a6ff');
+        } else if (time < 0.75) { // Evening: Vaporwave purple/orange
+            skyGradient.addColorStop(0, '#2b1055');
+            skyGradient.addColorStop(0.5, '#7597de');
+            skyGradient.addColorStop(1, '#ffb88c');
+        } else { // Night: Deep midnight teal/blue
+            skyGradient.addColorStop(0, '#0f2027');
+            skyGradient.addColorStop(0.5, '#203a43');
+            skyGradient.addColorStop(1, '#2c5364');
         }
         
         ctx.fillStyle = skyGradient;
         ctx.fillRect(0, 0, W, H);
         
-        // Draw Stars if Night
+        // Render Celestial Body (Sun/Moon)
+        let celestialY = H * 0.4 + Math.sin(time * Math.PI * 2) * H * 0.3; 
+        ctx.save();
+        ctx.beginPath();
+        ctx.arc(W * 0.5, celestialY, 60, 0, Math.PI * 2);
+        
+        if (time < 0.25 || time >= 0.75) {
+            // Moon aesthetic
+            ctx.fillStyle = 'rgba(255, 255, 255, 0.8)';
+            ctx.shadowColor = '#fff';
+            ctx.shadowBlur = 30;
+        } else {
+            // Sun aesthetic
+            ctx.fillStyle = 'rgba(255, 230, 100, 0.9)';
+            ctx.shadowColor = '#ffcc00';
+            ctx.shadowBlur = 50;
+        }
+        ctx.fill();
+        ctx.restore();
+        
         if (time > 0.75 || time < 0.1) {
             let alpha = time > 0.75 ? (time - 0.75) * 4 : 1 - (time * 10);
             ctx.fillStyle = `rgba(255, 255, 255, ${alpha})`;
             for (let i = 0; i < 50; i++) {
-                // Pseudo random based on i to keep stars static
                 let sx = (i * 1234) % W;
                 let sy = (i * 5678) % (H / 2);
                 ctx.fillRect(sx, sy, 2, 2);
             }
         }
         
-        // Draw World
         this.terrain.draw(ctx, this.cameraX, time);
         
         this.debris.forEach(d => d.draw(ctx, this.cameraX));
@@ -1040,7 +983,6 @@ class Game {
         
         this.particles.forEach(p => p.draw(ctx, this.cameraX));
         
-        // Weather Effects Overlay
         if (this.weatherType === 'RAIN') {
             ctx.strokeStyle = 'rgba(200,200,255,0.4)';
             ctx.lineWidth = 1;
@@ -1053,7 +995,6 @@ class Game {
                 if(r.y > H) { r.y = -20; r.x = Math.random()*W + 200; }
             });
             ctx.stroke();
-            // Fog overlay
             ctx.fillStyle = 'rgba(200,210,220,0.2)';
             ctx.fillRect(0, 0, W, H);
         }
@@ -1087,13 +1028,11 @@ class Game {
         let dt = timestamp - this.lastTime;
         this.lastTime = timestamp;
         
-        // FPS Calc
         if (timestamp % 30 < 1) {
             document.getElementById('fps').innerText = Math.round(1000 / dt);
         }
         
         ctx.save();
-        // Reset transforms
         ctx.setTransform(1, 0, 0, 1, 0, 0);
         
         if (this.state === 'PLAY') {
@@ -1111,9 +1050,8 @@ class Game {
     }
 }
 
-// Start visual loop (menu background) before user clicks
 window.onload = () => {
-    let dummyGame = new Game(); // Instantiates background rendering loop
+    let dummyGame = new Game(); 
 };
 </script>
 </body>

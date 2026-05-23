@@ -87,21 +87,24 @@
             50% { opacity: 0.5; transform: scale(0.98); } 
         }
 
-        /* Screens (Game Over & Start) */
+       /* Screens (Game Over & Start) */
         #game-over, #start-screen { position: absolute; top: 0; left: 0; width: 100%; height: 100%; display: flex; flex-direction: column; justify-content: center; align-items: center; pointer-events: auto; z-index: 10; }
         #game-over { background: rgba(0,0,0,0.8); opacity: 0; transition: opacity 0.5s; display: none; }
         #start-screen { background: #111; z-index: 20; }
-        h1 { font-size: 60px; color: #f00; text-shadow: 0 0 20px #f00; margin-bottom: 20px; text-align: center;}
-        p { font-size: 24px; color: #fff; margin-bottom: 10px; }
-        .stats-board { background: rgba(0,255,0,0.1); border: 1px solid #0f0; padding: 20px; border-radius: 10px; margin-bottom: 30px; text-align: center; }
-        .stats-board p { color: #0f0; margin: 5px 0; font-size: 20px; font-weight: bold; text-shadow: 0 0 5px #0f0;}
-        button { margin-top: 20px; padding: 15px 40px; font-size: 24px; background: transparent; color: #0f0; border: 2px solid #0f0; cursor: pointer; text-transform: uppercase; font-weight: bold; transition: all 0.2s; box-shadow: 0 0 10px rgba(0,255,0,0.3) inset; }
+        
+        /* Fluid Typography & Spacing: Automatically scales down on restricted heights */
+        h1 { font-size: clamp(30px, 8vmin, 60px); color: #f00; text-shadow: 0 0 20px #f00; margin-bottom: clamp(10px, 2vmin, 20px); text-align: center;}
+        p { font-size: clamp(14px, 3.5vmin, 24px); color: #fff; margin-bottom: clamp(5px, 1vmin, 10px); }
+        
+        .stats-board { background: rgba(0,255,0,0.1); border: 1px solid #0f0; padding: clamp(10px, 2vmin, 20px); border-radius: 10px; margin-bottom: clamp(10px, 2.5vmin, 30px); text-align: center; }
+        .stats-board p { color: #0f0; margin: clamp(2px, 0.5vmin, 5px) 0; font-size: clamp(14px, 3.5vmin, 20px); font-weight: bold; text-shadow: 0 0 5px #0f0;}
+        
+        button { margin-top: clamp(10px, 2vmin, 20px); padding: clamp(10px, 2vmin, 15px) clamp(20px, 5vmin, 40px); font-size: clamp(16px, 4vmin, 24px); background: transparent; color: #0f0; border: 2px solid #0f0; cursor: pointer; text-transform: uppercase; font-weight: bold; transition: all 0.2s; box-shadow: 0 0 10px rgba(0,255,0,0.3) inset; }
         button:hover { background: #0f0; color: #000; box-shadow: 0 0 20px #0f0; }
         
         /* Information text */
-        .controls-info { color: #aaa; margin: 15px 0; text-align: center; line-height: 1.6; font-size: 16px; }
-        .key { display: inline-block; padding: 2px 8px; border: 1px solid #aaa; border-radius: 4px; color: #fff; }
-
+        .controls-info { color: #aaa; margin: clamp(5px, 1.5vmin, 15px) 0; text-align: center; line-height: clamp(1.2, 2.5vmin, 1.6); font-size: clamp(12px, 3vmin, 16px); }
+        .key { display: inline-block; padding: clamp(1px, 0.5vmin, 2px) clamp(4px, 1vmin, 8px); border: 1px solid #aaa; border-radius: 4px; color: #fff; }
         /* Ultimate Flash Effect */
         #flash-overlay { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: white; opacity: 0; pointer-events: none; transition: opacity 0.1s; z-index: 5; }
 

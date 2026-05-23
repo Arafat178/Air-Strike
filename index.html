@@ -2,24 +2,53 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover, interactive-widget=resizes-content">
     <title>Air Strike: Desert Storm - Ultimate Edition</title>
     <style>
         /* Core Reset & Canvas Setup */
-        * { margin: 0; padding: 0; box-sizing: border-box; user-select: none; }
-        body { 
+        :root {
+            --vh: 1vh; /* Fallback variable for dynamic height */
+        }
+        
+        * { 
+            margin: 0; 
+            padding: 0; 
+            box-sizing: border-box; 
+            user-select: none; 
+            -webkit-touch-callout: none; /* Prevent iOS text selection */
+        }
+        
+        html, body { 
+            position: fixed; /* Locks the body to the visible screen, preventing scroll bounce */
+            top: 0;
+            left: 0;
+            width: 100%; 
+            height: 100%; 
             overflow: hidden; 
             background-color: #000; 
             font-family: 'Courier New', Courier, monospace; 
             touch-action: none; 
+            overscroll-behavior: none; /* Stops pull-to-refresh on Android */
         }
-        canvas { display: block; width: 100vw; height: 100vh; }
+        
+        canvas { 
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%; 
+            height: 100%; 
+            display: block; 
+        }
         
         /* Heads Up Display (HUD) */
-        #ui-layer { position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; padding: 20px; color: #0f0; text-shadow: 0 0 5px #0f0; z-index: 2; }
-        .hud-top { display: flex; justify-content: space-between; font-size: 18px; font-weight: bold; }
+        #ui-layer { 
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; 
+            padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
+            color: #0f0; text-shadow: 0 0 5px #0f0; z-index: 2; 
+        }
+        .hud-top { display: flex; justify-content: space-between; font-size: clamp(12px, 1.5vw, 18px); font-weight: bold; padding: 20px;}
         .hud-stats { display: flex; flex-direction: column; gap: 5px; }
-        .bar-container { width: 200px; height: 15px; border: 2px solid #0f0; background: rgba(0,255,0,0.2); margin-bottom: 5px;}
+        .bar-container { width: clamp(80px, 15vw, 200px); height: 15px; border: 2px solid #0f0; background: rgba(0,255,0,0.2); margin-bottom: 5px;}
         #health-bar { width: 100%; height: 100%; background: #0f0; transition: width 0.1s; }
         #fuel-bar-container { border-color: #0ff; background: rgba(0,255,255,0.2); }
         #fuel-bar { width: 100%; height: 100%; background: #0ff; transition: width 0.1s, background-color 0.3s; }
@@ -82,9 +111,27 @@
         .d-pad-middle { display: flex; gap: 40px; }
         .action-buttons { display: flex; gap: 20px; align-items: flex-end; pointer-events: auto; }
         
-        .touch-btn { width: 60px; height: 60px; background: rgba(0, 255, 0, 0.2); border: 2px solid #0f0; border-radius: 50%; display: flex; justify-content: center; align-items: center; color: #0f0; font-size: 24px; font-weight: bold; user-select: none; }
+        /* Dynamic sizing for touch controls using vmin */
+        .touch-btn { 
+            width: clamp(45px, 10vmin, 60px); 
+            height: clamp(45px, 10vmin, 60px); 
+            font-size: clamp(16px, 4vmin, 24px);
+            background: rgba(0, 255, 0, 0.2); 
+            border: 2px solid #0f0; 
+            border-radius: 50%; 
+            display: flex; 
+            justify-content: center; 
+            align-items: center; 
+            color: #0f0; 
+            font-weight: bold; 
+        }
         .touch-btn:active { background: rgba(0, 255, 0, 0.6); color: #000; }
-        .action-btn { width: 80px; height: 80px; border-radius: 15px; font-size: 18px; }
+        .action-btn { 
+            width: clamp(60px, 14vmin, 80px); 
+            height: clamp(60px, 14vmin, 80px); 
+            border-radius: 15px; 
+            font-size: clamp(14px, 3vmin, 18px); 
+        }
         .ult-btn { border-color: #f0f; color: #f0f; background: rgba(255, 0, 255, 0.2); }
         .ult-btn:active { background: rgba(255, 0, 255, 0.6); color: #fff; }
 
@@ -97,16 +144,11 @@
             #touch-controls { display: none !important; }
         }
         @media screen and (max-width: 900px) and (orientation: landscape) {
-            #touch-controls { display: flex; }
-            .hud-top { font-size: 14px; }
-            .touch-btn { width: 50px; height: 50px; font-size: 20px; }
-            .action-btn { width: 70px; height: 70px; font-size: 16px; }
-            .bar-container { width: 120px; height: 10px; }
-            #warning-panel { top: 50px; }
-            .threat-incoming { font-size: 32px; }
-            .threat-tracking { font-size: 26px; }
-            .threat-lock { font-size: 20px; }
-            .threat-radar { font-size: 18px; }
+            #touch-controls { display: flex; padding-bottom: calc(10px + env(safe-area-inset-bottom)); }
+            .bar-container { width: clamp(80px, 15vw, 120px); height: 10px; }
+            #warning-panel { top: 40px; }
+            .threat-incoming { font-size: clamp(24px, 5vw, 32px); }
+            .threat-tracking { font-size: clamp(20px, 4vw, 26px); }
         }
     </style>
 </head>
@@ -184,17 +226,47 @@
 
 <script>
 // ==========================================
-// SYSTEM INITIALIZATION & SAVES
+// SYSTEM INITIALIZATION & VIEWPORT ARCHITECTURE
 // ==========================================
 const canvas = document.getElementById('gameCanvas');
 const ctx = canvas.getContext('2d');
-let W = canvas.width = window.innerWidth;
-let H = canvas.height = window.innerHeight;
+let W, H;
 
-window.addEventListener('resize', () => {
-    W = canvas.width = window.innerWidth;
-    H = canvas.height = window.innerHeight;
+// Advanced resize algorithm to counter mobile browser UI collapsing
+function calculateViewport() {
+    // Utilize VisualViewport API if supported for true physical dimensions
+    if (window.visualViewport) {
+        W = window.visualViewport.width;
+        H = window.visualViewport.height;
+    } else {
+        // Fallback for older legacy browsers
+        W = window.innerWidth;
+        H = window.innerHeight;
+    }
+    
+    // Set internal render resolution
+    canvas.width = W;
+    canvas.height = H;
+    
+    // Sync UI elements to the true dynamic height
+    document.documentElement.style.setProperty('--vh', `${H * 0.01}px`);
+}
+
+// Bind resize mechanics
+window.addEventListener('resize', calculateViewport);
+
+// Delay orientation change to allow mobile GPU repaints
+window.addEventListener('orientationchange', () => {
+    setTimeout(calculateViewport, 150);
 });
+
+if (window.visualViewport) {
+    window.visualViewport.addEventListener('resize', calculateViewport);
+    window.visualViewport.addEventListener('scroll', calculateViewport);
+}
+
+// Initial geometric compute
+calculateViewport();
 
 // Load Saves
 let saveData = JSON.parse(localStorage.getItem('strikeForceSaveData')) || { high: 0, dist: 0, kills: 0 };
@@ -238,6 +310,15 @@ bindTouch('btn-left', 'a');
 bindTouch('btn-right', 'd');
 bindTouch('btn-fire', 'space');
 bindTouch('btn-ult', 'n');
+
+// Prevent default touch behaviors globally to avoid scrolling out of canvas
+document.addEventListener('touchmove', function(e) {
+    e.preventDefault();
+}, { passive: false });
+
+document.addEventListener('gesturestart', function(e) {
+    e.preventDefault(); // Prevents multi-touch zooming
+});
 
 // Math Utilities
 const MathUtils = {

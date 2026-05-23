@@ -92,19 +92,35 @@
         #game-over { background: rgba(0,0,0,0.8); opacity: 0; transition: opacity 0.5s; display: none; }
         #start-screen { background: #111; z-index: 20; }
         
-        /* Fluid Typography & Spacing: Automatically scales down on restricted heights */
-        h1 { font-size: clamp(30px, 8vmin, 60px); color: #f00; text-shadow: 0 0 20px #f00; margin-bottom: clamp(10px, 2vmin, 20px); text-align: center;}
-        p { font-size: clamp(14px, 3.5vmin, 24px); color: #fff; margin-bottom: clamp(5px, 1vmin, 10px); }
+        h1 { font-size: 50px; color: #f00; text-shadow: 0 0 20px #f00; margin-bottom: 20px; text-align: center;}
+        p { font-size: 20px; color: #fff; margin-bottom: 10px; }
         
-        .stats-board { background: rgba(0,255,0,0.1); border: 1px solid #0f0; padding: clamp(10px, 2vmin, 20px); border-radius: 10px; margin-bottom: clamp(10px, 2.5vmin, 30px); text-align: center; }
-        .stats-board p { color: #0f0; margin: clamp(2px, 0.5vmin, 5px) 0; font-size: clamp(14px, 3.5vmin, 20px); font-weight: bold; text-shadow: 0 0 5px #0f0;}
+        .stats-board { background: rgba(0,255,0,0.1); border: 1px solid #0f0; padding: 20px; border-radius: 10px; margin-bottom: 20px; text-align: center; }
+        .stats-board p { color: #0f0; margin: 5px 0; font-size: 18px; font-weight: bold; text-shadow: 0 0 5px #0f0;}
         
-        button { margin-top: clamp(10px, 2vmin, 20px); padding: clamp(10px, 2vmin, 15px) clamp(20px, 5vmin, 40px); font-size: clamp(16px, 4vmin, 24px); background: transparent; color: #0f0; border: 2px solid #0f0; cursor: pointer; text-transform: uppercase; font-weight: bold; transition: all 0.2s; box-shadow: 0 0 10px rgba(0,255,0,0.3) inset; }
+        button { margin-top: 15px; padding: 15px 40px; font-size: 20px; background: transparent; color: #0f0; border: 2px solid #0f0; cursor: pointer; text-transform: uppercase; font-weight: bold; transition: all 0.2s; box-shadow: 0 0 10px rgba(0,255,0,0.3) inset; }
         button:hover { background: #0f0; color: #000; box-shadow: 0 0 20px #0f0; }
         
         /* Information text */
-        .controls-info { color: #aaa; margin: clamp(5px, 1.5vmin, 15px) 0; text-align: center; line-height: clamp(1.2, 2.5vmin, 1.6); font-size: clamp(12px, 3vmin, 16px); }
-        .key { display: inline-block; padding: clamp(1px, 0.5vmin, 2px) clamp(4px, 1vmin, 8px); border: 1px solid #aaa; border-radius: 4px; color: #fff; }
+        .controls-info { color: #aaa; margin: 15px 0; text-align: center; line-height: 1.5; font-size: 14px; }
+        .key { display: inline-block; padding: 2px 6px; border: 1px solid #aaa; border-radius: 4px; color: #fff; }
+
+        /* ========================================== */
+        /* EXTREME LANDSCAPE COMPRESSION OVERRIDE     */
+        /* ========================================== */
+        @media screen and (max-height: 500px) and (orientation: landscape) {
+            #start-screen h1, #game-over h1 { font-size: 28px; margin-bottom: 5px; }
+            #start-screen p, #game-over p { font-size: 14px; margin-bottom: 2px; }
+            
+            .stats-board { padding: 5px 15px; margin-bottom: 5px; border-radius: 5px; }
+            .stats-board p { font-size: 12px; margin: 2px 0; }
+            
+            .controls-info { margin: 5px 0; line-height: 1.2; font-size: 11px; }
+            .controls-info p { margin-bottom: 3px; }
+            .key { padding: 1px 4px; font-size: 10px; }
+            
+            button { margin-top: 5px; padding: 8px 24px; font-size: 14px; border-width: 1px; }
+        }
         /* Ultimate Flash Effect */
         #flash-overlay { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: white; opacity: 0; pointer-events: none; transition: opacity 0.1s; z-index: 5; }
 
